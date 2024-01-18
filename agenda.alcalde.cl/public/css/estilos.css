@@ -1,0 +1,144 @@
+body{
+    margin-bottom: 50px;
+    line-height: 2!important;
+}
+
+.titulo{
+    width: 100%;
+    padding: 4px;
+    background: #000;
+    color: white;
+    text-align: center;  
+    font-size: 16px!important;   
+
+}
+
+.titulo-tabla{
+font-size: 11px;
+padding: 0 4px;
+font-weight: bold;
+}
+
+.actividad{
+font-size: 14px;
+}
+
+.cabecera{
+    height: 120px;
+    background: #990000;
+    margin-bottom: 0px;
+    background-image: url(http://www.laserena.cl/assets/img/logo_blanco.png);
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.mt{
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.mbottom{
+    margin: 3px;
+}
+
+.barra{
+    padding: 5px 0px;
+    background: #999;
+    margin-bottom: 10px;
+}
+.label-default {
+    background-color: #ccc !important;
+    color: #000 !important;
+    font-weight: bold;
+  /* font-size: 80% !important; */
+}
+
+.label-default-td {
+    background-color: #ccc !important;
+    color: #000 !important;
+    font-size: 90% !important;
+    font-weight: bold;
+
+}
+.fecha-top {
+    font-size: 19px !important;
+}
+
+
+@media (max-width: 600px) {
+    .actividadletra {
+        font-size:1.3em;
+        line-height: 18px;
+        text-align: left;
+    }
+}
+@media (min-width: 601px) {
+    .actividadletra {
+        font-size:1em;
+        line-height: 18px;
+        text-align: left;
+    }
+}
+
+/*
+@media print
+{    
+    body {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    .titulo-print{
+        background: #000 !important;
+        color: white !important;
+        text-align: center;
+    }
+
+    .fecha-print{
+        background-color: #fff !important;
+        color: #000 !important;
+        
+    }
+    
+    .no-print, .no-print *
+    {
+        display: none !important;
+    }
+
+    table{
+        border: 1px solid #ccc !important;
+        border: 1px solid #ccc !important;
+        background-color: #F2F2F2 !important;
+    }
+
+    th{
+        border: 1px solid #000;
+    }
+    .bg-info{
+        background-color: #999 !important;
+        color: white !important;
+    }
+
+    .label-default{
+        background-color: rgb(180, 176, 176) !important;
+        color: rgb(195, 195, 195) !important;
+       
+    }
+    .label-default-td{
+        background-color: rgb(180, 176, 176) !important;
+        color: rgb(195, 195, 195) !important;
+        font-size: 100% !important;
+    }
+
+
+    .titulo-tabla-print{
+        background-color: #424242 !important;
+        color: white !important;
+        
+    }
+    .actividadletra {
+        font-size:1.0599em!important;
+        line-height: 18px!important;
+        text-align: left!important;
+    }
+}
+*/

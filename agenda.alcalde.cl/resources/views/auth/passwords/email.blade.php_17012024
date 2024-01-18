@@ -1,0 +1,132 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('Reestablecer Contraseña') }}</div>
+
+                <div class="card-body">
+                    @if (session('status'))
+                        <div class="alert alert-success" role="alert">
+                            {{ session('status') }}
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('passwordUpdate') }}">
+                        @csrf
+
+                        <div class="row mb-3">
+                            <label for="email" class="col-md-4 col-form-label text-md-end">{{ __('Correo') }}</label>
+
+                            <div class="col-md-6">
+                                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required autocomplete="email">
+                                <div id="verification-message" class="text-muted"></div>
+
+                                @error('email')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+
+                        </div>
+
+                        <div class="row mb-3">
+                            <label for="password" class="col-md-4 col-form-label text-md-end">{{ __('Contraseña') }}</label>
+
+                            <div class="col-md-6">
+                                <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" name="password" required autocomplete="new-password" disabled ="true">
+
+                                @error('password')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <label for="password-confirm" class="col-md-4 col-form-label text-md-end">{{ __('Confirmar Contraseña') }}</label>
+
+                            <div class="col-md-6">
+                                <input id="password-confirm" type="password" class="form-control" name="password_confirmation" required autocomplete="new-password" disabled ="true">
+                            </div>
+                        </div>
+
+                        <div class="row mb-0">
+                            <div class="col-md-6 offset-md-4">
+                                <button type="submit" class="btn btn-primary">
+                                    {{ __('Cambiar contraseña') }}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section ('js')
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        var timeout;
+
+        // Función para verificar el correo electrónico al ingresar
+        function verificarCorreo(email) {
+            // Realizar la verificación de existencia del usuario mediante AJAX
+            $.ajax({
+                type: 'POST',
+                url: '{{ route("verificarEmail") }}',
+                data: { 
+                    _token: '{{ csrf_token() }}', 
+                    email: email 
+                },
+                success: function(response) {
+                    // Actualizar el color del texto y mostrar marca de verificación o cruz roja según la existencia del usuario
+                    if (response.exists) {                           
+                        $('#verification-message').removeClass('text-danger text-muted').addClass('text-success').text('Correo electrónico verificado y existe.');
+                        $('#password').prop('disabled', false);
+                        $('#password-confirm').prop('disabled', false);
+                    } else {                           
+                        $('#verification-message').removeClass('text-success text-muted').addClass('text-danger').text('Correo electrónico no encontrado.');
+                        $('#password').prop('disabled', true);
+                        $('#password-confirm').prop('disabled', true);
+                    }
+                },
+                error: function(error) {
+                    console.error('Error al verificar el correo electrónico:', error);       
+                    $('#verification-message').removeClass('text-success text-muted').addClass('text-danger').text('Ingresar el correo electrónico.');
+                }
+            });
+        }
+
+        // Verificar el correo electrónico cuando la página se carga por primera vez
+        verificarCorreo($('#email').val());
+
+        // Función para verificar el correo electrónico después de 500 ms de inactividad
+        $('#email').on('input', function() {
+            var email = $(this).val();
+
+            // Cancelar el timeout anterior
+            clearTimeout(timeout);
+
+            // Mostrar mensaje mientras se verifica el correo electrónico            
+            $('#verification-message').removeClass('text-success text-danger').addClass('text-muted').text('Verificando correo electrónico...');
+
+            // Establecer un nuevo timeout para realizar la verificación después de 500 ms
+            timeout = setTimeout(function() {
+                verificarCorreo(email);
+            }, 500); // 500 ms de debounce
+        });
+    });
+</script>
+
+
+@endsection
