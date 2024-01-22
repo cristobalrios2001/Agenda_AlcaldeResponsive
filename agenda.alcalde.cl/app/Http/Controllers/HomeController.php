@@ -8,6 +8,9 @@ use Illuminate\Cache\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\App;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -33,9 +36,74 @@ class HomeController extends Controller
         //dd($fec);
         $fechas = DB::select($fec);
         //dd($fechas);
-        $sql = "select * from agenda_alcalde where fecha =  CURRENT_DATE() and estado =1 order by hora asc;";
+        $sql = "select * from agenda_alcalde where fecha =  CURRENT_DATE() and estado =1;";
         $agendas = DB::select($sql);
         //dd($agendas);
+
+        // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
+
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
+
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if (!empty($fechas)){        
+            foreach ($horasPosibles as $horaPosible) {
+                $coincidencia = false;
+
+                foreach ($agendas as $agenda) {
+                    if ($agenda->hora == $horaPosible) {
+                        $agendasMod[] = $agenda;
+                        $coincidencia = true;
+                        break;
+                    }
+                }
+
+                if (!$coincidencia) {
+                    $nuevaAgenda = new AgendaAlcalde([
+                        'id_agenda' => 0,
+                        'hora' => $horaPosible,
+                        'fecha' => $fechas[0]->fecha,
+                        'descripcion' => '',
+                        'estado' => 0
+                    ]);
+
+                    $agendasMod[] = $nuevaAgenda;
+                }
+            }
+        }
+        else{
+            // SI NO EXISTE ACTIVIDAD PARA LA FECHA ACTUAL, SE REGISTRAN SOLO LAS HORAS POSIBLES
+            $fechaActual = Carbon::now();
+            $fechaActualSoloFecha = Carbon::now()->format('Y-m-d');
+            //dd($fechaActualSoloFecha);
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechaActualSoloFecha,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechaActualSoloFecha;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+            //dd($fechas);
+        }
+        $agendas = $agendasMod;
+
+        
+
         return view('home',compact('agendas','fechas'));
     }
 
@@ -93,13 +161,66 @@ class HomeController extends Controller
 
         // dd($agendas);
 
-                 // $newAgenda->fecha = date('Y-m-d H:i:s');
-        session()->flash('success', 'Registro Ingresado..!');
-        return view('home',compact('agendas','fechas'));
-        
+        // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
 
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
 
-        //return redirect()->route("home")->with("success","Registro Ingresado..!");
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if (!empty($fechas)){ 
+            foreach ($horasPosibles as $horaPosible) {
+                $coincidencia = false;
+
+                foreach ($agendas as $agenda) {
+                    if ($agenda->hora == $horaPosible) {
+                        $agendasMod[] = $agenda;
+                        $coincidencia = true;
+                        break;
+                    }
+                }
+
+                if (!$coincidencia) {
+                    $nuevaAgenda = new AgendaAlcalde([
+                        'id_agenda' => 0,
+                        'hora' => $horaPosible,
+                        'fecha' => $fechas[0]->fecha,
+                        'descripcion' => '',
+                        'estado' => 0
+                    ]);
+
+                    $agendasMod[] = $nuevaAgenda;
+                }
+            }
+        }else{            
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechabusca,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechabusca;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+            //dd($fechas);
+        }
+
+        $agendas = $agendasMod;
+
+                 
+        return view('home', compact('agendas', 'fechas'))->with('successMessage', 'Registro ingresado..!');  
      }
     
 
@@ -145,8 +266,7 @@ class HomeController extends Controller
         $audita->fecha_actividad = date('Y-m-d');
         //dd($audita);
         $audita->save();
-
-        // return redirect()->route("home")->with("edit","Registro Actualizado..!");
+        
 
         // -------------- REDIRECCIONAR FECHA ACTIVIDAD MODIFICADA -------------
         $sql1= "select fecha from agenda_alcalde where id_agenda =".$id;
@@ -159,8 +279,66 @@ class HomeController extends Controller
         $sql = 'select * from agenda_alcalde where fecha ="'.$fechaString.'"and estado =1;';
         $agendas = DB::select($sql);
 
-        session()->flash("edit","Registro Actualizado..!");
-        return view('home',compact('agendas','fechas'));
+        // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
+
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
+
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if (!empty($fechas)){ 
+            foreach ($horasPosibles as $horaPosible) {
+                $coincidencia = false;
+
+                foreach ($agendas as $agenda) {
+                    if ($agenda->hora == $horaPosible) {
+                        $agendasMod[] = $agenda;
+                        $coincidencia = true;
+                        break;
+                    }
+                }
+
+                if (!$coincidencia) {
+                    $nuevaAgenda = new AgendaAlcalde([
+                        'id_agenda' => 0,
+                        'hora' => $horaPosible,
+                        'fecha' => $fechas[0]->fecha,
+                        'descripcion' => '',
+                        'estado' => 0
+                    ]);
+
+                    $agendasMod[] = $nuevaAgenda;
+                }
+            }
+        }else{  
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechaString,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechaString;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+            //dd($fechas);
+        }
+
+
+        $agendas = $agendasMod;
+
+        return view('home', compact('agendas', 'fechas'))->with('editMessage', 'Registro modificado..!');
     }
 
     public function delete(Request $request, $id)
@@ -201,9 +379,7 @@ class HomeController extends Controller
          $audita->ip_maquina =$clientIP ;
          $audita->fecha_actividad = date('Y-m-d');
          //dd($audita);
-         $audita->save();
-
-        // return redirect()->route("home")->with("delete","Registro Eliminado..!");
+         $audita->save();        
 
          // -------------- REDIRECCIONAR FECHA ACTIVIDAD ELIMINADA -------------
          $sql1= "select fecha from agenda_alcalde where id_agenda =".$id;
@@ -215,14 +391,68 @@ class HomeController extends Controller
  
          $sql = 'select * from agenda_alcalde where fecha ="'.$fechaString.'"and estado =1;';
          $agendas = DB::select($sql);
- 
-         session()->flash("delete","Registro Eliminado..!");
-         return view('home',compact('agendas','fechas'));
+
+         // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
+
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
+
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if(!empty($fechas)){
+        foreach ($horasPosibles as $horaPosible) {
+            $coincidencia = false;
+
+            foreach ($agendas as $agenda) {
+                if ($agenda->hora == $horaPosible) {
+                    $agendasMod[] = $agenda;
+                    $coincidencia = true;
+                    break;
+                }
+            }
+
+            if (!$coincidencia) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechas[0]->fecha,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+        }
+        }else{
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechaString,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechaString;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+        }
+        $agendas = $agendasMod;
+
+         return view('home', compact('agendas', 'fechas'))->with('deleteMessage', 'Registro Eliminado..!');
     }
     
     public function search(Request $request)
-    {
-        //return response()->json($request);
+    {        
         $fecbusca = $request->post('frmactividad');
         $fec = 'select fecha from agenda_alcalde where fecha ="'.$fecbusca.'"and estado =1 group by fecha;';
 
@@ -233,9 +463,66 @@ class HomeController extends Controller
         }else{
            
         $fechabusca = $request->post('frmactividad');
-       
+        //dd($fechabusca);
         $sql = 'select * from agenda_alcalde where fecha ="'.$fechabusca.'"and estado =1;';
         $agendas = DB::select($sql);
+
+
+        // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
+
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
+
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if(!empty($fechas)){        
+            foreach ($horasPosibles as $horaPosible) {
+                $coincidencia = false;
+
+                foreach ($agendas as $agenda) {
+                    if ($agenda->hora == $horaPosible) {
+                        $agendasMod[] = $agenda;
+                        $coincidencia = true;
+                        break;
+                    }
+                }
+
+                if (!$coincidencia) {
+                    $nuevaAgenda = new AgendaAlcalde([
+                        'id_agenda' => 0,
+                        'hora' => $horaPosible,
+                        'fecha' => $fechas[0]->fecha,
+                        'descripcion' => '',
+                        'estado' => 0
+                    ]);
+
+                    $agendasMod[] = $nuevaAgenda;
+                }
+            }
+        }else{
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechabusca,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechabusca;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+        }
+        $agendas = $agendasMod;
         
         return view('home',compact('agendas','fechas')); 
         }
@@ -244,14 +531,13 @@ class HomeController extends Controller
     
     public function obtenerDatosFechas(Request $request)
     {
-        // return response()->json($request);
-        // Obtén la fecha del request
+        // Obtiene la fecha seleccionada
         $fechaSeleccionada = $request->get('fecha');
 
         $fec = 'select hora from agenda_alcalde where fecha ="'.$fechaSeleccionada.'" and estado =1;';
 
         $fechas = DB::select($fec);
-        // dd($fec);
+        
         // Retorna los datos como respuesta JSON
         return response()->json($fechas);
     }
@@ -259,6 +545,87 @@ class HomeController extends Controller
     public function send()
     {
         return view('send');
+    }
+
+    public function pdf(Request $request)
+    {
+        $fechas = $request->input('fechas');
+        $fecha = $fechas[0]['fecha'];        
+
+        $fec = "select fecha from agenda_alcalde where fecha = '" . $fecha . "' and estado = 1 group by fecha";
+
+        //dd($fec);
+        $fechas = DB::select($fec);
+        //dd($fechas);
+        $sql = "select * from agenda_alcalde where fecha = '" . $fecha . "' and estado = 1";
+        $agendas = DB::select($sql);
+        //dd($agendas);
+
+        // Generar horas posibles
+        $horasPosibles = [];
+        $horaInicio = strtotime('07:30:00');
+        $horaFin = strtotime('22:30:00');
+        $intervalo = 30 * 60; // Intervalo de 30 minutos
+
+        for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
+            $horasPosibles[] = date('H:i:s', $hora);
+        }
+
+        // Comparar y modificar la agenda
+        $agendasMod = [];
+        if(!empty($fechas)){        
+            foreach ($horasPosibles as $horaPosible) {
+                $coincidencia = false;
+
+                foreach ($agendas as $agenda) {
+                    if ($agenda->hora == $horaPosible) {
+                        $agendasMod[] = $agenda;
+                        $coincidencia = true;
+                        break;
+                    }
+                }
+
+                if (!$coincidencia) {
+                    $nuevaAgenda = new AgendaAlcalde([
+                        'id_agenda' => 0,
+                        'hora' => $horaPosible,
+                        'fecha' => $fechas[0]->fecha,
+                        'descripcion' => '',
+                        'estado' => 0
+                    ]);
+
+                    $agendasMod[] = $nuevaAgenda;
+                }
+            }
+        }else{
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fecha,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fecha;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+        }
+
+        $agendas = $agendasMod;
+
+        
+        
+        $pdf = PDF::loadView('pdf.pdf', ['agendas' => $agendas , 'fechas' => $fechas]);
+        
+        $pdf->setPaper('legal', 'portrait');
+        
+        return $pdf->download('Agenda Alcalde "'.$fecha.'".pdf');
+        
     }
 }
 

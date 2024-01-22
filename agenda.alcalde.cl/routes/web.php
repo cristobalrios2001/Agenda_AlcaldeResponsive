@@ -48,3 +48,5 @@ Route::delete('/destroy/{id}', [App\Http\Controllers\HomeController::class, 'del
 Route::post('/search', [App\Http\Controllers\HomeController::class, 'search'])->name('search');
 
 Route::get('/obtenerDatosFechas', [App\Http\Controllers\HomeController::class, 'obtenerDatosFechas'])->name('obtenerDatosFechas');
+
+Route::get('agenda/pdf', [App\Http\Controllers\HomeController::class, 'pdf'])->name('agenda.pdf');
