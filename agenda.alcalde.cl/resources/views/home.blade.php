@@ -37,14 +37,16 @@
             </script>
         @endif
 
-        @if(\Session::has('alert'))
-            <div class="alert alert-danger">
-                <p>{{\Session::get('alert')}}</p>
+        @if(isset($alertMessage))
+            <div class="alert alert-success">
+                <p>{{ $alertMessage }}</p>
             </div>
-            @php
-                header('Refresh:2'); 
-            @endphp
-        @endif 
+            <script>
+                setTimeout(function(){
+                    $('.alert-success').fadeOut();
+                }, 2000); // 2 segundos
+            </script>
+        @endif
     </div>
     
 
@@ -132,11 +134,11 @@
 
                                 <!-- DESCRIPCION ACTIVIDAD -->
                                 <div class="col">
-                                    <div class="text-uppercase small lh-1 text-start pt-2 pb-2">
+                                    <div class="text-uppercase small lh-1 text-start pt-2 pb-2 ">
                                         @if ($agenda->id_agenda!=0)
                                             {{$agenda->descripcion}}
                                         @else
-                                            <span class="text-danger">No hay actividades en este horario</span>
+                                            <!-- <span class="text-danger">No hay actividades en este horario</span> -->
                                         @endif
 
                                         
@@ -183,7 +185,7 @@
                                         @if ($agenda->id_agenda!=0)
                                             {{$agenda->descripcion}}
                                         @else
-                                            <span class="text-danger">No hay actividades en este horario</span>
+                                            <!-- <span class="text-danger">No hay actividades en este horario</span> -->
 
                                         @endif</div>
                                 </div>

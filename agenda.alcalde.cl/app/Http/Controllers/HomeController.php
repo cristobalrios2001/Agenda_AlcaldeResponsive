@@ -453,30 +453,55 @@ class HomeController extends Controller
     
     public function search(Request $request)
     {        
-        $fecbusca = $request->post('frmactividad');
-        $fec = 'select fecha from agenda_alcalde where fecha ="'.$fecbusca.'"and estado =1 group by fecha;';
-
-        $fechas = DB::select($fec);
-        if (count($fechas)==0)
-        {
-            return redirect()->route("home")->with("alert","No hay actividad para la fecha seleccionada..!");
-        }else{
-           
-        $fechabusca = $request->post('frmactividad');
-        //dd($fechabusca);
-        $sql = 'select * from agenda_alcalde where fecha ="'.$fechabusca.'"and estado =1;';
-        $agendas = DB::select($sql);
-
-
-        // Generar horas posibles
         $horasPosibles = [];
         $horaInicio = strtotime('07:30:00');
         $horaFin = strtotime('22:30:00');
         $intervalo = 30 * 60; // Intervalo de 30 minutos
-
         for ($hora = $horaInicio; $hora <= $horaFin; $hora += $intervalo) {
             $horasPosibles[] = date('H:i:s', $hora);
         }
+
+        $fecbusca = $request->post('frmactividad');
+        $fec = 'select fecha from agenda_alcalde where fecha ="'.$fecbusca.'"and estado =1 group by fecha;';
+
+        $fechas = DB::select($fec);
+
+        $fechabusca = $request->post('frmactividad');
+        if (count($fechas)==0)
+        {   
+            $agendasMod = [];
+            foreach ($horasPosibles as $horaPosible) {
+                $nuevaAgenda = new AgendaAlcalde([
+                    'id_agenda' => 0,
+                    'hora' => $horaPosible,
+                    'fecha' => $fechabusca,
+                    'descripcion' => '',
+                    'estado' => 0
+                ]);
+
+                $agendasMod[] = $nuevaAgenda;
+            }
+            $objetoFechaActual = new \stdClass();
+            $objetoFechaActual->fecha = $fechabusca;
+
+            // Almacenar el objeto en el array $fechas
+            $fechas = [$objetoFechaActual];
+            $agendas = $agendasMod;
+
+            return view('home', compact('agendas', 'fechas'))->with('alertMessage', 'No se han encontrado registros..!');
+            //return redirect()->route("home")->with("alert","No hay actividad para la fecha seleccionada..!");
+        }else{
+           
+        
+        
+        $sql = 'select * from agenda_alcalde where fecha ="'.$fechabusca.'"and estado =1;';
+        $agendas = DB::select($sql);
+
+
+        
+        
+
+        
 
         // Comparar y modificar la agenda
         $agendasMod = [];
@@ -624,7 +649,7 @@ class HomeController extends Controller
         
         $pdf->setPaper('legal', 'portrait');
         
-        return $pdf->download('Agenda Alcalde "'.$fecha.'".pdf');
+        return $pdf->stream();
         
     }
 }
